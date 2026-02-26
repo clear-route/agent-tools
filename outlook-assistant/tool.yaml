@@ -8,9 +8,9 @@ usage: |
   MAIL ACTIONS
     list        --folder=inbox --n=20 --page=1 --since=YYYY-MM-DD --before=YYYY-MM-DD --from=email --subject=text --unread --json
     read        --ref=<index|id> --json
-    send        --to=<email,...> --subject=<text> --body=<text> [--cc=<email,...>] [--bcc=<email,...>]
-    reply       --ref=<index|id> --body=<text>
-    forward     --ref=<index|id> --to=<email,...> [--cc=<email,...>] [--bcc=<email,...>] [--body=<text>]
+    send        --to=<email,...> --subject=<text> --body=<text> [--format=text|md|html] [--cc=<email,...>] [--bcc=<email,...>]
+    reply       --ref=<index|id> --body=<text> [--format=text|md|html]
+    forward     --ref=<index|id> --to=<email,...> [--cc=<email,...>] [--bcc=<email,...>] [--body=<text>] [--format=text|md|html]
     search      --query=<text> --n=20 --since=YYYY-MM-DD --before=YYYY-MM-DD --json
     archive     --ref=<index|id>
     move        --ref=<index|id> --folder=<name>
@@ -113,6 +113,11 @@ parameters:
     type: string
     required: false
     description: "Message body text. Required for mail send and mail reply. Optional for mail forward (prepended above the quoted original if provided)."
+
+  - name: format
+    type: string
+    required: false
+    description: "Body format for outgoing messages: text (plain text, default), md (Markdown rendered to HTML), or html (raw HTML pass-through)."
 
   - name: set
     type: string
