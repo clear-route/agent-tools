@@ -56,7 +56,8 @@ func run() error {
 	to   := flag.String("to", "", "Recipient address(es), comma-separated (mail send)")
 	cc   := flag.String("cc", "", "CC address(es), comma-separated (mail send)")
 	bcc  := flag.String("bcc", "", "BCC address(es), comma-separated (mail send)")
-	body := flag.String("body", "", "Message body text (mail send, mail reply)")
+	body   := flag.String("body", "", "Message body text (mail send, mail reply)")
+	format := flag.String("format", "text", "Body format: text (default), md (Markdown), or html (raw HTML pass-through)")
 
 	// ── Categorize flag ───────────────────────────────────────────────────────
 	set := flag.String("set", "", "Comma-separated category names to apply; empty string clears all (mail categorize)")
@@ -88,7 +89,7 @@ func run() error {
 	case "mail":
 		return handleMail(ctx, client, *action, *ref, *query, *jsonOut, *count, *page,
 			*since, *before, *from, *unread, *folder, *subject,
-			*to, *cc, *bcc, *body, *set)
+			*to, *cc, *bcc, *body, *format, *set)
 
 	case "calendar":
 		return handleCalendar(ctx, client, *action, *jsonOut, *count,
@@ -130,8 +131,9 @@ func handleMail(
 	since, before, from string,
 	unread bool,
 	folder, subject string,
-	to, cc, bcc, body, set string,
+	to, cc, bcc, body, format, set string,
 ) error {
+	bodyFmt := mail.ParseBodyFormat(format)
 	switch action {
 	case "list":
 		opts := mail.ListOptions{
@@ -154,7 +156,7 @@ func handleMail(
 		if to == "" || subject == "" {
 			return fmt.Errorf("--to and --subject are required for mail send")
 		}
-		return mail.Send(ctx, client, to, cc, bcc, subject, body)
+		return mail.Send(ctx, client, to, cc, bcc, subject, body, bodyFmt)
 
 	case "reply":
 		if ref == "" {
@@ -163,7 +165,7 @@ func handleMail(
 		if body == "" {
 			return fmt.Errorf("--body is required for mail reply")
 		}
-		return mail.Reply(ctx, client, ref, body)
+		return mail.Reply(ctx, client, ref, body, bodyFmt)
 
 	case "forward":
 		if ref == "" {
@@ -172,7 +174,7 @@ func handleMail(
 		if to == "" {
 			return fmt.Errorf("--to is required for mail forward")
 		}
-		return mail.Forward(ctx, client, ref, to, cc, bcc, body)
+		return mail.Forward(ctx, client, ref, to, cc, bcc, body, bodyFmt)
 
 	case "search":
 		if query == "" {

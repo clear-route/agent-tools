@@ -338,7 +338,7 @@ func Read(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref stri
 
 // Send composes and sends an email from flag arguments — no interactive prompts.
 // to, cc, and bcc accept comma-separated email addresses; cc and bcc may be empty.
-func Send(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, to, cc, bcc, subject, body string) error {
+func Send(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, to, cc, bcc, subject, body string, format BodyFormat) error {
 	if to == "" {
 		return fmt.Errorf("--to is required")
 	}
@@ -349,7 +349,7 @@ func Send(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, to, cc, 
 	message := models.NewMessage()
 	message.SetSubject(&subject)
 
-	htmlBody := textToHTML(body)
+	htmlBody := RenderBody(body, format)
 	bodyContent := models.NewItemBody()
 	contentType := models.HTML_BODYTYPE
 	bodyContent.SetContentType(&contentType)
@@ -398,7 +398,7 @@ func parseRecipients(addresses string) []models.Recipientable {
 
 // Reply sends a reply to a message identified by ref (list index or Graph ID).
 // Uses createReply → patch body → send so that HTML formatting is preserved.
-func Reply(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, body string) error {
+func Reply(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, body string, format BodyFormat) error {
 	if body == "" {
 		return fmt.Errorf("--body is required")
 	}
@@ -418,7 +418,7 @@ func Reply(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, bo
 	draftID := deref(draft.GetId(), "")
 
 	// Step 2: patch the draft with our HTML body so formatting is preserved.
-	htmlBody := textToHTML(body)
+	htmlBody := RenderBody(body, format)
 	patch := models.NewMessage()
 	itemBody := models.NewItemBody()
 	contentType := models.HTML_BODYTYPE
@@ -445,7 +445,7 @@ func Reply(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, bo
 // Uses createForward → patch body → send so that HTML formatting is preserved.
 // ref may be a 1-based list index or a raw Graph message ID.
 // body is optional prepend text; if empty only the original message is forwarded.
-func Forward(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, to, cc, bcc, body string) error {
+func Forward(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, to, cc, bcc, body string, format BodyFormat) error {
 	if to == "" {
 		return fmt.Errorf("--to is required for mail forward")
 	}
@@ -497,11 +497,13 @@ func Forward(ctx context.Context, client *msgraphsdkgo.GraphServiceClient, ref, 
 		}
 
 		// Prepend our custom HTML above the quoted original.
-		// Strip the closing tags from our prepend block and stitch in the
-		// original draft HTML (which already contains the FW: quoted message).
-		prepend := textToHTML(body)
-		prepend = strings.TrimSuffix(strings.TrimSpace(prepend), "</body></html>")
-		combined := prepend + "\n<hr>\n" + originalHTML
+		// RenderBodyInner gives inner HTML only (no html/body wrapper), so we
+		// can safely splice it above the quoted message without creating nested
+		// or malformed HTML documents. ExtractBodyContent strips the outer
+		// html/body tags from Graph's original before combining.
+		prepend := RenderBodyInner(body, format)
+		quotedContent := ExtractBodyContent(originalHTML)
+		combined := wrapEmailHTML(prepend + "\n<hr>\n" + quotedContent)
 
 		itemBody := models.NewItemBody()
 		contentType := models.HTML_BODYTYPE
@@ -988,23 +990,7 @@ func collapseSpaces(s string) string {
 	}
 	return b.String()
 }
-
-// textToHTML converts a plain-text body (with \n line breaks) to a minimal HTML
-// document suitable for sending as an HTML email. Special characters are escaped
-// and newlines are converted to <br> tags so that whitespace and paragraph
-// structure is preserved exactly as typed.
-func textToHTML(s string) string {
-	// Escape HTML special characters first so the content is safe.
-	s = strings.ReplaceAll(s, "&", "&amp;")
-	s = strings.ReplaceAll(s, "<", "&lt;")
-	s = strings.ReplaceAll(s, ">", "&gt;")
-	s = strings.ReplaceAll(s, `"`, "&quot;")
-	// Convert line breaks to <br> so spacing is preserved in email clients.
-	s = strings.ReplaceAll(s, "\n", "<br>\n")
-	return "<html><body style=\"font-family:sans-serif;font-size:14px;line-height:1.5;\">\n" + s + "\n</body></html>"
-}
-
-// parseFlexibleDate parses a date/time string in several common formats.
+// Body rendering is handled by RenderBody / RenderBodyInner in formatting.go.
 // Accepted: "2006-01-02", "2006-01-02 15:04", "2006-01-02T15:04:05Z07:00".
 func parseFlexibleDate(s string) (time.Time, error) {
 	formats := []string{
