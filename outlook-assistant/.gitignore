@@ -1,0 +1,25 @@
+# Environment & secrets — NEVER commit these
+.env
+*.env
+.env.*
+
+# OAuth token saved by MSAL / Graph SDK
+token_cache.json
+
+# Mail ID cache (local convenience file, not sensitive)
+.mail_id_cache.json
+
+# Compiled binary
+outlook-assistant
+
+# Go build artifacts
+*.test
+*.out
+dist/
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

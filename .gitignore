@@ -1,0 +1,31 @@
+# Environment & secrets — NEVER commit these
+.env
+*.env
+.env.*
+
+# Compiled binaries (each tool builds its own)
+outlook-assistant/outlook-assistant
+**/dist/
+
+# OAuth / token caches
+token_cache.json
+*.token.json
+*-auth.json
+
+# Mail/calendar ID caches
+.mail_id_cache.json
+
+# Go build artifacts
+*.test
+*.out
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Scratch / working notes (never published)
+scratch/

@@ -1,0 +1,151 @@
+name: outlook-assistant
+description: Interact with Outlook mail and calendar via Microsoft Graph API. Supports listing, reading, sending, replying, forwarding, searching, archiving, moving, and categorizing mail, plus listing and creating calendar events. All output is JSON-capable for agent use.
+version: 1.0.0
+entrypoint: outlook-assistant
+usage: |
+  Required: --group=<mail|calendar> --action=<action>
+
+  MAIL ACTIONS
+    list        --folder=inbox --n=20 --page=1 --since=YYYY-MM-DD --before=YYYY-MM-DD --from=email --subject=text --unread --json
+    read        --ref=<index|id> --json
+    send        --to=<email,...> --subject=<text> --body=<text> [--cc=<email,...>] [--bcc=<email,...>]
+    reply       --ref=<index|id> --body=<text>
+    forward     --ref=<index|id> --to=<email,...> [--cc=<email,...>] [--bcc=<email,...>] [--body=<text>]
+    search      --query=<text> --n=20 --since=YYYY-MM-DD --before=YYYY-MM-DD --json
+    archive     --ref=<index|id>
+    move        --ref=<index|id> --folder=<name>
+    categorize  --ref=<index|id> --set=<cat1,cat2,...>
+    markread    --ref=<index|id> [--unread]
+    delete      --ref=<index|id>
+    folders     --json
+
+  CALENDAR ACTIONS
+    list        --n=20 --json
+    create      --title=<text> --start="2006-01-02 15:04" --end="2006-01-02 15:04" [--location=<text>] [--attendees=<email,...>] --json
+
+  --json sends structured JSON to stdout; all status messages go to stderr.
+  --ref accepts the index number from the last mail list/search, or a raw Graph message ID.
+  Well-known folder names: inbox, archive, deleteditems, drafts, sentitems, junkemail.
+  Credentials: CLIENT_ID and TENANT_ID must be set in environment or .env file in the repo directory.
+
+parameters:
+  - name: group
+    type: string
+    required: true
+    description: "Command group: mail or calendar"
+
+  - name: action
+    type: string
+    required: true
+    description: "Action to perform: list, read, send, reply, forward, search, archive, move, categorize, markread, delete, folders (mail) or list, create (calendar)"
+
+  - name: ref
+    type: string
+    required: false
+    description: "Message reference: numeric index from last mail list/search, or raw Graph message ID. Required for read, reply, forward, archive, move, categorize, markread, delete."
+
+  - name: query
+    type: string
+    required: false
+    description: "Search query string. Required for mail search."
+
+  - name: json
+    type: boolean
+    required: false
+    description: "Output structured JSON to stdout instead of plain text. Recommended for agent use."
+
+  - name: n
+    type: integer
+    required: false
+    description: "Number of messages or events to fetch (default: 20)"
+
+  - name: page
+    type: integer
+    required: false
+    description: "Page number, 1-based, for mail list pagination (default: 1)"
+
+  - name: since
+    type: string
+    required: false
+    description: "Filter to messages received on or after this date. Format: YYYY-MM-DD or YYYY-MM-DD HH:MM"
+
+  - name: before
+    type: string
+    required: false
+    description: "Filter to messages received on or before this date. Format: YYYY-MM-DD or YYYY-MM-DD HH:MM"
+
+  - name: from
+    type: string
+    required: false
+    description: "Filter mail list to messages from this sender email address"
+
+  - name: unread
+    type: boolean
+    required: false
+    description: "mail list: only return unread messages. mail markread: mark as unread instead of read."
+
+  - name: folder
+    type: string
+    required: false
+    description: "Folder name for mail list (default: inbox) or mail move destination. Well-known names: inbox, archive, deleteditems, drafts, sentitems, junkemail."
+
+  - name: subject
+    type: string
+    required: false
+    description: "mail list: case-insensitive substring filter on subject. mail send: subject line for new message."
+
+  - name: to
+    type: string
+    required: false
+    description: "Recipient email address(es), comma-separated. Required for mail send and mail forward."
+
+  - name: cc
+    type: string
+    required: false
+    description: "CC email address(es), comma-separated. Optional for mail send."
+
+  - name: bcc
+    type: string
+    required: false
+    description: "BCC email address(es), comma-separated. Optional for mail send."
+
+  - name: body
+    type: string
+    required: false
+    description: "Message body text. Required for mail send and mail reply. Optional for mail forward (prepended above the quoted original if provided)."
+
+  - name: set
+    type: string
+    required: false
+    description: "Comma-separated category names to apply to a message. Empty string clears all categories. Used with mail categorize."
+
+  - name: title
+    type: string
+    required: false
+    description: "Event title. Required for calendar create."
+
+  - name: start
+    type: string
+    required: false
+    description: "Event start date/time in format '2006-01-02 15:04'. Required for calendar create."
+
+  - name: end
+    type: string
+    required: false
+    description: "Event end date/time in format '2006-01-02 15:04'. Required for calendar create."
+
+  - name: location
+    type: string
+    required: false
+    description: "Event location string. Optional for calendar create."
+
+  - name: attendees
+    type: string
+    required: false
+    description: "Comma-separated attendee email addresses. Optional for calendar create."
+
+security:
+  - "Credentials (CLIENT_ID, TENANT_ID) must be set as environment variables or in a .env file in the repo directory (/Users/justin/Agents/engineering/.env). Never hardcode credentials."
+  - "Token cache stored at ~/.outlook-assistant-auth.json — protects access token at rest via OS keychain where available."
+  - "Mail ID cache stored at ~/.outlook-assistant-mail-cache.json — contains Graph message IDs, not message content."
+  - "The --ref flag accepts user-supplied index or Graph ID — validated internally before use."
