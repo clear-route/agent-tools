@@ -47,12 +47,10 @@ Each permission should show a green ✅ in the status column.
 
 ## 3. Configure Credentials
 
-Create a `.env` file next to the installed binary:
+A `.env.example` is included in the repo with the correct values. Copy it next to the installed binary:
 
 ```bash
-# ~/.forge/tools/outlook-assistant/.env
-CLIENT_ID=<your-application-client-id>
-TENANT_ID=<your-directory-tenant-id>
+cp outlook-assistant/.env.example ~/.forge/tools/outlook-assistant/.env
 ```
 
 No client secret is required. Authentication uses the browser-based interactive flow.

@@ -23,12 +23,10 @@ Forge auto-discovers tools in `~/.forge/tools/` — no restart needed.
 
 ## Credentials
 
-The tool requires two environment variables. Set them in a `.env` file next to the binary:
+A `.env.example` is included in the repo with the correct `CLIENT_ID` and `TENANT_ID` for ClearRoute. Copy it into place after building:
 
-```
-# ~/.forge/tools/outlook-assistant/.env
-CLIENT_ID=<your-azure-app-client-id>
-TENANT_ID=<your-azure-tenant-id>
+```bash
+cp .env.example ~/.forge/tools/outlook-assistant/.env
 ```
 
 No client secret is needed — authentication uses Interactive Browser Flow (see below).
