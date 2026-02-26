@@ -1,51 +1,37 @@
 # Setup Guide
 
-One-time instructions for configuring the Azure App Registration and building the binary.
+One-time setup for ClearRoute staff. Estimated time: 10 minutes.
 
 ---
 
 ## Prerequisites
 
-- Go 1.21 or later
-- An active Microsoft 365 / Outlook account (e.g. `@clearroute.io`)
-- Access to [Azure Portal](https://portal.azure.com) with permissions to register apps
+- Go 1.21 or later (`go version` to check)
+- A ClearRoute Microsoft 365 account (`@clearroute.io`)
+- Access to [Azure Portal](https://portal.azure.com) with permission to register apps (or ask IT to do steps 1–3)
 
 ---
 
 ## 1. Register an Azure App
 
 1. Go to [portal.azure.com](https://portal.azure.com)
-2. Search for **"App registrations"** → **New registration**
+2. Search for **App registrations** → **New registration**
 3. Fill in:
-   - **Name**: `outlook-assistant` (or any name you like)
+   - **Name**: `outlook-assistant`
    - **Supported account types**: *Accounts in this organizational directory only (Single tenant)*
-   - **Redirect URI**: `http://localhost:4321` (type: Web)
+   - **Redirect URI**: Type = **Web**, Value = `http://localhost:4321`
 4. Click **Register**
 
-After registration, copy the following from the **Overview** page:
+From the **Overview** page, copy:
 
-| Field | Where to find it |
+| Value | Where to find it |
 |-------|-----------------|
 | `CLIENT_ID` | Application (client) ID |
 | `TENANT_ID` | Directory (tenant) ID |
 
 ---
 
-## 2. Create a Client Secret
-
-1. In the app registration, go to **Certificates & secrets** → **New client secret**
-2. Set a description (e.g. "outlook-assistant") and an expiry (12 or 24 months)
-3. Click **Add**
-4. **Copy the secret value immediately** — it won't be shown again
-
-This becomes `CLIENT_SECRET` in your `.env`.
-
-> ⚠️ If the secret was ever shared in plain text (e.g. in a chat), rotate it before production use:
-> delete the old secret and create a new one, then update `.env`.
-
----
-
-## 3. Add API Permissions
+## 2. Add API Permissions
 
 1. Go to **API permissions** → **Add a permission** → **Microsoft Graph** → **Delegated permissions**
 2. Add all of the following:
@@ -53,58 +39,55 @@ This becomes `CLIENT_SECRET` in your `.env`.
    - `Mail.Send`
    - `Calendars.ReadWrite`
    - `User.Read`
-   - `offline_access`
-3. Click **Grant admin consent for [your organisation]** → **Yes**
+3. Click **Grant admin consent for ClearRoute** → **Yes**
 
-The status column for each permission should show a green ✅ tick.
+Each permission should show a green ✅ in the status column.
 
 ---
 
-## 4. Configure the `.env` File
+## 3. Configure Credentials
 
-Copy the example below and save it as `.env` in the project root:
+Create a `.env` file next to the installed binary:
 
-```
+```bash
+# ~/.forge/tools/outlook-assistant/.env
 CLIENT_ID=<your-application-client-id>
-CLIENT_SECRET=<your-client-secret-value>
 TENANT_ID=<your-directory-tenant-id>
 ```
 
-The `.gitignore` already blocks `.env` from being committed.
+No client secret is required. Authentication uses the browser-based interactive flow.
 
 ---
 
-## 5. Build the Binary
+## 4. Build and Install
 
 ```bash
-go build -o outlook-assistant .
+git clone https://github.com/clear-route/agent-tools.git
+cd agent-tools/outlook-assistant
+go build -o ~/.forge/tools/outlook-assistant/outlook-assistant .
+cp tool.yaml ~/.forge/tools/outlook-assistant/tool.yaml
 ```
 
-The first build downloads dependencies and takes ~60–120 seconds.
-Subsequent builds are much faster (4–10 seconds).
+The first build downloads dependencies (~60–120 seconds). Subsequent builds take a few seconds.
 
 ---
 
-## 6. First Run & Authentication
-
-The tool uses the **Interactive Browser Flow** — a browser window opens automatically for sign-in.
+## 5. First Run
 
 ```bash
-./outlook-assistant mail list
+outlook-assistant --action=list
 ```
 
-On first run your default browser will open to the Microsoft sign-in page. Sign in with
-your Microsoft 365 account and grant consent. After authentication succeeds, a
-`token_cache.json` file is written locally so you won't be prompted again until the token
-expires.
+On first run, your default browser opens to the Microsoft 365 sign-in page. Sign in with your `@clearroute.io` account and grant consent when prompted.
+
+An auth record is cached at `~/.outlook-assistant-auth.json`. Subsequent runs are silent — no browser interaction until the token expires.
 
 ---
 
-## File Reference
+## Files Written at Runtime
 
 | File | Purpose |
 |------|---------|
-| `.env` | Credentials — **never commit** |
-| `token_cache.json` | OAuth token cache — **never commit** |
-| `.mail_id_cache.json` | Cached message IDs for `mail read N` |
-| `outlook-assistant` | Compiled binary |
+| `~/.forge/tools/outlook-assistant/.env` | Your credentials — never commit |
+| `~/.outlook-assistant-auth.json` | OAuth auth record — never commit |
+| `~/.outlook-assistant-mail-cache.json` | Message ID cache for `--ref` index lookups |

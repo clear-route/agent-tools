@@ -1,116 +1,126 @@
-# Outlook Assistant
+# outlook-assistant
 
-A terminal-based tool for interacting with your Microsoft 365 / Outlook inbox and calendar using the [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/overview).
+A Forge custom tool for interacting with Microsoft 365 mail and calendar via the Graph API.
 
-Built in Go. No browser. No web server. Just a binary you run from your terminal.
-
----
-
-## Features
-
-- 📬 **List emails** — view your inbox at a glance with sender, subject, and timestamp
-- 📖 **Read emails** — open any message by its list number; HTML is stripped to readable plain text
-- ✉️  **Send emails** — compose and send interactively from the terminal
-- 📅 **List calendar events** — see upcoming events for the next 30 days
-- 🗓️  **Create calendar events** — schedule meetings without leaving the terminal
+All output is structured JSON (with `--json`) or clean plain text — designed for agent pipelines and terminal use.
 
 ---
 
-## Quick Start
-
-**First time?** Follow [setup.md](setup.md) to register the Azure app and build the binary.
-
-Once the binary is built and `.env` is configured:
+## Installation
 
 ```bash
-# List your 20 most recent emails
-./outlook-assistant mail list
-
-# Read email #3 from the last list
-./outlook-assistant mail read 3
-
-# Compose and send an email
-./outlook-assistant mail send
-
-# List upcoming calendar events (default: next 30 days, up to 20)
-./outlook-assistant calendar list
-
-# Create a new calendar event
-./outlook-assistant calendar create
+# From the repo root
+cd outlook-assistant
+go build -o ~/.forge/tools/outlook-assistant/outlook-assistant .
+cp tool.yaml ~/.forge/tools/outlook-assistant/tool.yaml
 ```
+
+Forge auto-discovers tools in `~/.forge/tools/` — no restart needed.
+
+**First time setup?** See [setup.md](setup.md) to register the Azure app and configure credentials.
+
+---
+
+## Credentials
+
+The tool requires two environment variables. Set them in a `.env` file next to the binary:
+
+```
+# ~/.forge/tools/outlook-assistant/.env
+CLIENT_ID=<your-azure-app-client-id>
+TENANT_ID=<your-azure-tenant-id>
+```
+
+No client secret is needed — authentication uses Interactive Browser Flow (see below).
 
 ---
 
 ## Authentication
 
-Uses **Device Code Flow** — no local web server or redirect URI needed at runtime.
+On first run, your default browser opens automatically to the Microsoft 365 sign-in page. Sign in with your ClearRoute account and grant consent.
 
-On first run, the tool prints a URL and a short code:
-
-```
-To sign in, use a web browser to open the page https://microsoft.com/devicelogin
-and enter the code XXXXXXXX to authenticate.
-```
-
-Open the URL in any browser, enter the code, and sign in with your Microsoft 365 account.
-A `token_cache.json` file is written locally; subsequent runs reuse the cached token silently.
+An auth record is cached at `~/.outlook-assistant-auth.json`. Subsequent runs are silent — no browser interaction until the token expires.
 
 ---
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `mail list [n]` | List most recent `n` emails from inbox (default: 20) |
-| `mail read <n>` | Read email number `n` from the last `mail list` output |
-| `mail send` | Compose and send an email interactively |
-| `calendar list [n]` | List next `n` upcoming events (default: 20) |
-| `calendar create` | Create a new calendar event interactively |
+All flags are named. No positional arguments.
 
----
+### Mail
 
-## Project Structure
+| Action | Required flags | Optional flags |
+|--------|---------------|----------------|
+| `list` | — | `--folder` `--n` `--page` `--since` `--before` `--from` `--subject` `--unread` `--json` |
+| `read` | `--ref` | `--json` |
+| `send` | `--to` `--subject` | `--body` `--cc` `--bcc` |
+| `reply` | `--ref` `--body` | — |
+| `forward` | `--ref` `--to` | `--body` `--cc` `--bcc` |
+| `search` | `--query` | `--n` `--since` `--before` `--json` |
+| `archive` | `--ref` | — |
+| `move` | `--ref` `--folder` | — |
+| `categorize` | `--ref` `--set` | — |
+| `markread` | `--ref` | `--unread` (to mark unread instead) |
+| `delete` | `--ref` | — |
+| `folders` | — | `--json` |
 
-```
-outlook-assistant/
-├── auth/
-│   └── auth.go          # Azure Device Code authentication → Graph client
-├── mail/
-│   └── mail.go          # List, Read, Send
-├── calendar/
-│   └── calendar.go      # List, Create
-├── main.go              # CLI dispatcher
-├── .env                 # Credentials (never committed)
-├── setup.md             # One-time Azure setup instructions
-└── README.md            # This file
-```
+### Calendar
 
----
+| Action | Required flags | Optional flags |
+|--------|---------------|----------------|
+| `list` | — | `--n` `--since` `--before` `--json` |
+| `create` | `--title` `--start` `--end` | `--location` `--attendees` `--json` |
 
-## Security Notes
+### Flag reference
 
-- `.env` and `token_cache.json` are listed in `.gitignore` and must **never** be committed.
-- The tool requests only the minimum Microsoft Graph permissions needed:
-  `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `User.Read`, `offline_access`
-- If your `CLIENT_SECRET` was ever shared in plain text, rotate it in the Azure Portal
-  (**App Registrations → Certificates & secrets**) and update `.env`.
+| Flag | Description |
+|------|-------------|
+| `--group` | `mail` or `calendar` (default: `mail`) |
+| `--action` | Action name from the tables above |
+| `--ref` | Message index from last `list`/`search`, or raw Graph message ID |
+| `--n` | Number of results (default: 20) |
+| `--page` | Page number, 1-based (default: 1) |
+| `--folder` | Mail folder name. Well-known: `inbox` `archive` `sentitems` `drafts` `deleteditems` `junkemail` |
+| `--since` / `--before` | Date filter: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM` |
+| `--from` | Filter by sender email |
+| `--subject` | Filter by subject substring (list) or set subject (send) |
+| `--unread` | Filter unread only (list) or mark as unread (markread) |
+| `--query` | Search query string |
+| `--to` / `--cc` / `--bcc` | Recipient addresses, comma-separated |
+| `--body` | Message body text |
+| `--set` | Comma-separated category names (empty string clears all) |
+| `--title` | Event title |
+| `--start` / `--end` | Event date/time: `"2006-01-02 15:04"` |
+| `--location` | Event location |
+| `--attendees` | Comma-separated attendee emails |
+| `--json` | Output structured JSON to stdout; status messages go to stderr |
 
----
-
-## Requirements
-
-- Go 1.21+
-- Microsoft 365 account (personal or organisational)
-- Azure App Registration with admin consent granted (see [setup.md](setup.md))
-
----
-
-## Building from Source
+### Examples
 
 ```bash
-git clone <your-repo>
-cd outlook-assistant
-cp .env.example .env   # fill in CLIENT_ID, CLIENT_SECRET, TENANT_ID
-go build -o outlook-assistant .
-./outlook-assistant
+# List 10 unread emails
+outlook-assistant --action=list --unread --n=10 --json
+
+# Read the 3rd email from the last list
+outlook-assistant --action=read --ref=3 --json
+
+# Send an email
+outlook-assistant --action=send --to=someone@clearroute.io --subject="Hello" --body="Hi there"
+
+# Search for emails about invoices
+outlook-assistant --action=search --query="invoice" --json
+
+# List calendar events for the next two weeks
+outlook-assistant --action=list --group=calendar --since=2025-01-01 --before=2025-01-15 --json
+
+# Create a calendar event
+outlook-assistant --action=create --group=calendar --title="Standup" --start="2025-01-10 09:00" --end="2025-01-10 09:30" --attendees="alice@clearroute.io,bob@clearroute.io"
 ```
+
+---
+
+## Security
+
+- `.env` and `~/.outlook-assistant-auth.json` must **never** be committed — both are covered by `.gitignore`.
+- The tool requests only the minimum Graph permissions: `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `User.Read`.
+- No client secret is stored — authentication delegates entirely to the browser sign-in flow.
