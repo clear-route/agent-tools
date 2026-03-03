@@ -1,0 +1,10 @@
+# Compiled binary (will be built from source during installation)
+excalidraw-assistant
+
+# Python virtual environment (will be created during setup)
+references/.venv/
+references/__pycache__/
+references/*.pyc
+
+# UV lock file (will be generated during uv sync)
+references/uv.lock
