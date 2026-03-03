@@ -1,23 +1,35 @@
 # Excalidraw Assistant
 
-Generate beautiful Excalidraw diagrams from natural language descriptions using visual argument methodology.
+A validation and rendering engine for Excalidraw diagrams.
 
-## Using This Tool
+## Overview
 
-This tool is available as a custom tool. Invoke it using the `run_custom_tool` with `tool_name: excalidraw-assistant` and provide arguments as parameters:
+This tool is a **rendering and validation engine** for Excalidraw diagrams. You (the agent) are responsible for generating the Excalidraw JSON using your LLM capabilities. This tool validates that JSON against the Excalidraw schema and renders it to PNG, providing feedback for you to iterate on.
 
-- `description` (required): Natural language description of the diagram to create
-- `output` (required): Output file path for .excalidraw JSON
-- `render` (optional): Set to true to also generate PNG output
-- `scale` (optional): Render scale factor (default: 2)
-- `width` (optional): Render viewport width (default: 1920)
+## How It Works
 
-**IMPORTANT:** Before generating any diagram, you must read the reference files located at `~/.forge/tools/excalidraw-assistant/references/`:
-- `color-palette.md` - All color definitions (read this FIRST, never hardcode colors)
-- `element-templates.md` - JSON templates for each element type
-- `json-schema.md` - Complete Excalidraw JSON format specification
+**Your Role:**
+- Read the reference files in the `references/` directory located inside the tool's installation folder to understand colors, element templates, and JSON structure
+- Generate valid Excalidraw JSON based on user requirements and the design methodology below
+- Write the JSON to a `.excalidraw` file
+- Pass that file to this tool for validation and rendering
 
-These reference files contain the exact specifications needed to generate valid Excalidraw JSON.
+**Tool's Role:**
+- Validates JSON structure against Excalidraw schema
+- Renders the diagram to PNG
+- Provides error feedback for iteration
+
+This creates a **render-validate-fix loop** where you generate diagrams, the tool validates and renders them, and you iterate based on feedback.
+
+## Reference Files
+
+Before creating diagrams, read these files from the `references/` directory inside the tool's installation folder:
+
+- `color-palette.md` - Semantic color palette with fill/stroke pairs
+- `element-templates.md` - JSON templates for each Excalidraw element type
+- `json-schema.md` - Complete Excalidraw JSON schema reference
+
+These files are your source of truth for generating valid diagrams.
 
 ## Core Philosophy
 
@@ -30,8 +42,6 @@ A diagram isn't formatted text. It's a visual argument that shows relationships,
 **The Isomorphism Test**: If you removed all text, would the structure alone communicate the concept? If not, redesign.
 
 **The Education Test**: Could someone learn something concrete from this diagram, or does it just label boxes? A good diagram teaches—it shows actual formats, real event names, concrete examples.
-
-
 
 ## Design Methodology
 
@@ -49,6 +59,8 @@ Before designing, determine what level of detail the diagram needs:
 - The diagram will be used to teach or explain
 - The audience needs to understand what things actually look like
 - You're showing how multiple technologies integrate
+
+**Default to comprehensive.** If in doubt, err on the side of showing real examples and concrete details.
 
 **For technical diagrams, you MUST include evidence artifacts** (see below).
 
@@ -76,27 +88,22 @@ Evidence artifacts are concrete examples that prove your diagram is accurate and
 | **Data/JSON examples** | Data formats, schemas, payloads | Dark rectangle + colored text |
 | **Event/step sequences** | Protocols, workflows, lifecycles | Timeline pattern (line + dots + labels) |
 
-Use colors from `~/.forge/tools/excalidraw-assistant/references/color-palette.md` for evidence artifact styling.
+Use colors from `references/color-palette.md` for evidence artifact styling.
 
 ### 4. Layout Principles
 
-**Spatial meaning:**
-- **Vertical flow** = time/sequence (top → bottom)
-- **Horizontal flow** = parallel processes or choices
-- **Proximity** = related concepts
-- **Separation** = distinct concerns
+#### Information Architecture
+- **Containers communicate scope**: Outer boxes = broader context. Inner boxes = implementations.
+- **Shape conveys nature**: Rectangles for systems, rounded rectangles for processes, diamonds for decisions, ellipses for start/end
+- **Color indicates category**: Use the semantic color palette from `references/color-palette.md` consistently
 
-**Alignment and spacing:**
-- Align related elements to the same grid
-- Use consistent spacing (100px for loose grouping, 50px for tight grouping)
-- Leave breathing room—don't cram
+#### Spatial Relationships
+- **Vertical flow = time/sequence**: Top to bottom shows what happens first, second, third
+- **Horizontal grouping = categorization**: Things at the same level are peers or alternatives
+- **Nesting = containment**: One box inside another shows ownership or implementation detail
+- **Proximity = coupling**: Related elements should be visually close
 
-**Visual hierarchy:**
-- Larger shapes = more important concepts
-- Darker colors = focal points
-- Text size: 20px for titles, 16px for labels, 14px for details
-
-### 5. Visual Pattern Library
+#### Visual Pattern Library
 
 **Shape meanings:**
 
@@ -115,18 +122,69 @@ Use colors from `~/.forge/tools/excalidraw-assistant/references/color-palette.md
 - **Bidirectional** = two-way communication
 - **No arrow (just line)** = structural grouping, not flow
 
-### 6. Color as Meaning
+#### Data Flow & Interactions
+- **Arrows show causality**: Not just connection, but what causes what
+- **Arrow labels should be concrete**: Show real method names, HTTP verbs, actual event types
+- **Bidirectional flows need both arrows**: Don't use a single line for request/response
 
-**All colors come from `~/.forge/tools/excalidraw-assistant/references/color-palette.md`.**
+### 5. Text Strategy
 
-You MUST read the color palette file using read_file before generating any diagram. Never hardcode color values. Use semantic colors:
-- Primary fill/stroke for main elements
-- Secondary fill/stroke for supporting elements
-- Warning/success colors for status indicators
-- Evidence artifact background for code/data blocks
-- Text colors based on contrast (light/dark backgrounds)
+**Every text element should add information, not just label.**
 
-### 7. Multi-Section Workflow (For Large Diagrams)
+Good text:
+- `POST /api/token` (shows the actual endpoint)
+- `{access_token, refresh_token}` (shows what's actually returned)
+- `userId: "user123"` (shows real data structure)
+
+Bad text:
+- "Authentication Service" (just labels a box)
+- "Database" (doesn't show what's stored)
+- "Request" (doesn't show what kind)
+
+**Text hierarchy:**
+1. **Headers** (20-24px): Section names, major component labels
+2. **Body** (16-18px): Primary content, data examples, code snippets
+3. **Annotations** (12-14px): Notes, clarifications, edge case details
+
+All text should use `fontFamily: 3` (monospace) for technical diagrams to maintain the code-like aesthetic.
+
+### 6. Color Semantics
+
+**READ `references/color-palette.md` for all color values.** Never hardcode colors.
+
+The palette provides semantic categories:
+- **Primary**: Main system components, default elements
+- **Start/Trigger**: Entry points, user actions, initiating events
+- **End/Success**: Terminal states, success outcomes, completed flows
+- **AI/LLM**: AI components, LLM calls, intelligent processing
+- **Process**: Active processing, transformations, computations
+- **Data**: Storage, databases, data structures
+- **Warning**: Caution points, rate limits, potential issues
+- **Validation**: Checks, guards, validation steps
+- **Text hierarchy**: Headers, body, annotations
+
+Each category has a fill color and stroke color pair designed to work together.
+
+### 7. Design Principles
+
+**Start with the main path, then add variations.**
+
+1. Draw the happy path / normal flow first (Core flow)
+2. Add error cases and edge cases as branches
+3. Use color to distinguish normal vs exceptional flows
+4. Group related elements with visual proximity
+
+**Use whitespace intentionally:**
+- Dense spacing for tightly coupled elements
+- Wide spacing to show separation of concerns
+- Consistent spacing within groups for visual rhythm
+
+**Alignment matters:**
+- Align related elements to show grouping
+- Stagger elements to show sequence
+- Center important nodes to show focus
+
+#### Multi-Section Workflow (For Large Diagrams)
 
 For comprehensive diagrams, generate JSON section by section:
 
@@ -137,36 +195,84 @@ For comprehensive diagrams, generate JSON section by section:
 
 This prevents token limit issues and allows iterative refinement.
 
-### 8. Render-Validate-Fix Loop
+### 8. Common Patterns
 
-After generating JSON:
+#### Flow Diagrams
+- Start with a trigger (start/trigger color)
+- Show the sequence top-to-bottom
+- Use arrows with concrete labels
+- End with outcomes (success/error colors)
+- Include actual data formats in transit
 
-1. Render to PNG using the Python renderer
-2. Visually inspect the result
-3. Identify issues (alignment, spacing, color, clarity)
-4. Apply fixes to the JSON
-5. Re-render and validate
-6. Repeat until diagram is publication-ready
+#### System Architecture
+- Outer container for system boundary
+- Inner boxes for components
+- Show actual protocols on connections
+- Include concrete examples of requests/responses
+- Use color to distinguish layers (UI, logic, data)
 
-## Reference Files Location
+#### State Machines
+- States as rounded rectangles
+- Transitions as labeled arrows
+- Show actual event names on transitions
+- Highlight start state and end states with semantic colors
+- Include example data that triggers transitions
 
-All reference files are located at `~/.forge/tools/excalidraw-assistant/references/`:
+### 9. Rendering & Validation
 
-- `color-palette.md` - Brand colors and semantic color usage (READ THIS FIRST)
-- `element-templates.md` - Copy-paste JSON templates for all element types
-- `json-schema.md` - Excalidraw JSON format reference
-- `render_excalidraw.py` - Python + Playwright PNG renderer (invoked automatically with render=true)
+After generating your JSON:
+1. Write it to a `.excalidraw` file
+2. Pass it to this tool for validation
+3. Review the rendered PNG
+4. Look for these common issues:
+   - Text elements without `containerId` (orphaned labels)
+   - Overlapping elements (adjust x/y coordinates)
+   - Inconsistent spacing (use multiples of 20 for grid alignment)
+   - Wrong color palette (verify against `color-palette.md`)
+   - Missing arrow labels (add concrete method/event names)
+5. Repeat the generate → render → observe → refine loop until the diagram is clear, accurate, and visually appealing.
 
-**You must read these files using read_file before generating diagrams.** The color palette especially is mandatory reading.
+**The render loop is your feedback mechanism.** Don't try to get it perfect in one shot. Generate → render → observe → refine.
 
-## Best Practices
+### 10. Technical Requirements
 
-1. **Read the reference files first** - Use read_file to load `~/.forge/tools/excalidraw-assistant/references/color-palette.md`, `element-templates.md`, and `json-schema.md` before generating any diagram
-2. **Never hardcode colors** - All color values must come from the color palette file
-3. **Use evidence artifacts** - For technical diagrams, include real code/data examples
-4. **Think spatially** - Use position and proximity to convey meaning
-5. **Iterate visually** - Use render=true to generate PNG, then refine the JSON based on visual inspection
-6. **Keep it focused** - One clear argument per diagram
+**All elements must include:**
+- `id` (unique string)
+- `type` (rectangle, ellipse, diamond, arrow, text, line)
+- `x`, `y` (position coordinates)
+- `width`, `height` (dimensions)
+- `strokeColor`, `backgroundColor` (from color palette)
+- `fillStyle` (solid, hachure, cross-hatch)
+- `strokeWidth`, `strokeStyle`, `roughness`, `opacity`
+- `seed`, `version`, `versionNonce` (for rendering consistency)
+- `isDeleted`, `groupIds`, `boundElements`, `link`, `locked`
+
+**Text elements must:**
+- Set `containerId` to parent shape ID (for labels inside boxes)
+- Parent shape must have `boundElements` array listing the text element
+- Use `fontFamily: 3` (monospace) for technical content
+- Set `textAlign` and `verticalAlign` appropriately
+
+**Arrow elements must:**
+- Define `points` array for arrow path
+- Set `startBinding` and `endBinding` to connect to shapes
+- Include `endArrowhead: "arrow"` for directional arrows
+- Use `text` property for arrow labels
+
+**Rounded rectangles must:**
+- Include `roundness: {"type": 3}` for corner rounding
+
+See `references/element-templates.md` for complete JSON templates and `references/json-schema.md` for the full schema specification.
+
+## Examples
+
+The tool comes with reference examples in `.tmp/excalidraw-diagram-skill/examples/` showing:
+- OAuth flows with actual endpoint calls
+- Multi-agent systems with real message formats
+- Database schemas with concrete field names
+- State machines with example transitions
+
+Study these examples to understand the level of detail and visual argument principles in practice.
 
 ## Common Patterns
 
