@@ -4,7 +4,8 @@ version: 1.0.0
 entrypoint: excalidraw-assistant.go
 usage: |
   Create beautiful Excalidraw diagrams from natural language descriptions.
-  See README.md in the tool directory for full design methodology and best practices.
+  It is important that you follow the README.md in the tool directory for full design methodology and best practices.
+  And follow its references to ensure alignment of design.
   
   Examples:
     excalidraw-assistant --description "OAuth 2.0 flow" --output auth.excalidraw

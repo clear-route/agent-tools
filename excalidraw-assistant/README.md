@@ -2,7 +2,26 @@
 
 Generate beautiful Excalidraw diagrams from natural language descriptions using visual argument methodology.
 
+## Using This Tool
+
+This tool is available as a custom tool. Invoke it using the `run_custom_tool` with `tool_name: excalidraw-assistant` and provide arguments as parameters:
+
+- `description` (required): Natural language description of the diagram to create
+- `output` (required): Output file path for .excalidraw JSON
+- `render` (optional): Set to true to also generate PNG output
+- `scale` (optional): Render scale factor (default: 2)
+- `width` (optional): Render viewport width (default: 1920)
+
+**IMPORTANT:** Before generating any diagram, you must read the reference files located at `~/.forge/tools/excalidraw-assistant/references/`:
+- `color-palette.md` - All color definitions (read this FIRST, never hardcode colors)
+- `element-templates.md` - JSON templates for each element type
+- `json-schema.md` - Complete Excalidraw JSON format specification
+
+These reference files contain the exact specifications needed to generate valid Excalidraw JSON.
+
 ## Core Philosophy
+
+Use this guide as your source of truth for generating beautiful excalidraw diagrams for your user.
 
 **Diagrams should ARGUE, not DISPLAY.**
 
@@ -12,21 +31,7 @@ A diagram isn't formatted text. It's a visual argument that shows relationships,
 
 **The Education Test**: Could someone learn something concrete from this diagram, or does it just label boxes? A good diagram teaches—it shows actual formats, real event names, concrete examples.
 
-## Usage
 
-The tool accepts a natural language description and generates Excalidraw JSON (and optionally renders to PNG):
-
-```bash
-excalidraw-assistant --description "Create a diagram showing OAuth 2.0 authorization code flow" --output auth-flow.excalidraw [--render]
-```
-
-### Parameters
-
-- `--description` (required): Natural language description of the diagram to create
-- `--output` (required): Output file path for .excalidraw JSON
-- `--render`: Also generate PNG output using the renderer
-- `--scale`: Render scale factor (default: 2)
-- `--width`: Render viewport width (default: 1920)
 
 ## Design Methodology
 
@@ -71,7 +76,7 @@ Evidence artifacts are concrete examples that prove your diagram is accurate and
 | **Data/JSON examples** | Data formats, schemas, payloads | Dark rectangle + colored text |
 | **Event/step sequences** | Protocols, workflows, lifecycles | Timeline pattern (line + dots + labels) |
 
-Use colors from `references/color-palette.md` for evidence artifact styling.
+Use colors from `~/.forge/tools/excalidraw-assistant/references/color-palette.md` for evidence artifact styling.
 
 ### 4. Layout Principles
 
@@ -112,9 +117,9 @@ Use colors from `references/color-palette.md` for evidence artifact styling.
 
 ### 6. Color as Meaning
 
-**All colors come from `references/color-palette.md`.**
+**All colors come from `~/.forge/tools/excalidraw-assistant/references/color-palette.md`.**
 
-Read the color palette file before generating any diagram. Use semantic colors:
+You MUST read the color palette file using read_file before generating any diagram. Never hardcode color values. Use semantic colors:
 - Primary fill/stroke for main elements
 - Secondary fill/stroke for supporting elements
 - Warning/success colors for status indicators
@@ -143,42 +148,25 @@ After generating JSON:
 5. Re-render and validate
 6. Repeat until diagram is publication-ready
 
-## Reference Files
+## Reference Files Location
 
-- `references/color-palette.md` - Brand colors and semantic color usage
-- `references/element-templates.md` - Copy-paste JSON templates for all element types
-- `references/json-schema.md` - Excalidraw JSON format reference
-- `references/render_excalidraw.py` - Python + Playwright PNG renderer
+All reference files are located at `~/.forge/tools/excalidraw-assistant/references/`:
 
-## Renderer Setup
+- `color-palette.md` - Brand colors and semantic color usage (READ THIS FIRST)
+- `element-templates.md` - Copy-paste JSON templates for all element types
+- `json-schema.md` - Excalidraw JSON format reference
+- `render_excalidraw.py` - Python + Playwright PNG renderer (invoked automatically with render=true)
 
-The PNG renderer requires Python and Playwright:
-
-```bash
-cd ~/.forge/tools/excalidraw-assistant/references
-uv sync
-uv run playwright install chromium
-```
-
-## Examples
-
-**Simple conceptual diagram:**
-```bash
-excalidraw-assistant --description "Three-layer architecture: presentation, business logic, data access" --output architecture.excalidraw
-```
-
-**Technical diagram with evidence:**
-```bash
-excalidraw-assistant --description "OAuth 2.0 authorization code flow with actual HTTP requests and JSON response formats" --output oauth-flow.excalidraw --render
-```
+**You must read these files using read_file before generating diagrams.** The color palette especially is mandatory reading.
 
 ## Best Practices
 
-1. **Read the color palette first** - Always check `references/color-palette.md` before generating
-2. **Use evidence artifacts** - For technical diagrams, include real code/data examples
-3. **Think spatially** - Use position and proximity to convey meaning
-4. **Iterate visually** - Render and refine until the diagram teaches on its own
-5. **Keep it focused** - One clear argument per diagram
+1. **Read the reference files first** - Use read_file to load `~/.forge/tools/excalidraw-assistant/references/color-palette.md`, `element-templates.md`, and `json-schema.md` before generating any diagram
+2. **Never hardcode colors** - All color values must come from the color palette file
+3. **Use evidence artifacts** - For technical diagrams, include real code/data examples
+4. **Think spatially** - Use position and proximity to convey meaning
+5. **Iterate visually** - Use render=true to generate PNG, then refine the JSON based on visual inspection
+6. **Keep it focused** - One clear argument per diagram
 
 ## Common Patterns
 
