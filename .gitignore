@@ -5,6 +5,7 @@
 
 # Compiled binaries (each tool builds its own)
 outlook-assistant/outlook-assistant
+excalidraw-assistant/excalidraw-assistant
 **/dist/
 
 # OAuth / token caches
@@ -29,3 +30,12 @@ vendor/
 
 # Scratch / working notes (never published)
 scratch/
+
+# Temporary exploration
+.tmp/
+
+# Python virtual environments (renderer dependencies)
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/uv.lock

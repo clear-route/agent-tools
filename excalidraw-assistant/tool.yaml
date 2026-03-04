@@ -1,0 +1,43 @@
+name: excalidraw-assistant
+description: Create beautiful Excalidraw diagrams from natural language descriptions. Generates .excalidraw JSON and optionally renders to PNG using visual argument methodology.
+version: 1.0.0
+entrypoint: excalidraw-assistant.go
+usage: |
+  Create beautiful Excalidraw diagrams and validate.
+  It is important that you follow the README.md in the tool directory for full design methodology and best practices.
+  And follow its references to ensure alignment of design.
+  
+  The agent is responsible for:
+  1. Reading and following the README.md in the tool directory and following design methodology.
+  1. Reading reference files in ~/.forge/tools/excalidraw-assistant/references/
+  2. Generating valid Excalidraw JSON based on those references
+  3. Writing the JSON to a .excalidraw file
+  4. Passing that file to this tool for validation and rendering
+  
+  This tool provides the render-validate-fix feedback loop.
+  
+  Examples:
+    excalidraw-assistant --input diagram.excalidraw
+    excalidraw-assistant --input diagram.excalidraw --output custom.png --scale 3
+    excalidraw-assistant --input diagram.excalidraw --validate-only
+parameters:
+  - name: input
+    type: string
+    description: Path to .excalidraw JSON file to validate/render
+    required: true
+  - name: output
+    type: string
+    description: Output PNG file path (defaults to input name with .png extension)
+    required: false
+  - name: validate-only
+    type: boolean
+    description: Only validate JSON without rendering
+    required: false
+  - name: scale
+    type: integer
+    description: Render scale factor (default 2)
+    required: false
+  - name: width
+    type: integer
+    description: Render viewport width in pixels (default 1920)
+    required: false
