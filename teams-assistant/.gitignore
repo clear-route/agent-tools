@@ -1,0 +1,26 @@
+# Environment & secrets — NEVER commit these
+.env
+*.env
+.env.*
+!.env.example
+
+# OAuth token saved by MSAL / Graph SDK
+token_cache.json
+
+# Meeting ID cache (local convenience file, not sensitive)
+.meeting_cache.json
+
+# Compiled binary
+teams-assistant
+
+# Go build artifacts
+*.test
+*.out
+dist/
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
