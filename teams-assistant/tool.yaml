@@ -1,0 +1,96 @@
+name: teams-assistant
+description: Fetch Microsoft Teams meeting transcripts and metadata via Microsoft Graph API. Use transcripts to generate meeting summaries, action items, and key decisions. Designed for agent use with JSON output.
+version: 1.0.0
+entrypoint: teams-assistant
+usage: |
+  Required: --action=<action>
+
+  ACTIONS
+    list          --n=20 --since=YYYY-MM-DD --before=YYYY-MM-DD --json
+    search        --query=<text> --n=20 --since=YYYY-MM-DD --before=YYYY-MM-DD --json
+    transcript    --ref=<index|id> --json
+
+  ALL JSON RESPONSES include a "user" field with the authenticated user's displayName and email.
+  Use user.displayName to match the user against speaker names in transcript chunks.
+
+  TRANSCRIPT OUTPUT FORMAT
+    The transcript action returns structured JSON with:
+    - data.duration: meeting length (e.g. "42m15s")
+    - data.speakers: list of speakers with utterance counts
+    - data.totalLines: total utterance count
+    - data.chunks: array of {index, path, timeFrom, timeTo, lines}
+    Each chunk file is ~10 minutes of transcript in plain text format:
+      [MM:SS --> MM:SS] Speaker Name: utterance text
+    Chunks keep the transcript manageable — read them sequentially to avoid context blowout.
+
+  WORKFLOW: Meeting summary
+    1. --action=list --json  or  --action=search --query="topic" --json
+    2. --action=transcript --ref=<index> --json
+    3. Review data.speakers and data.duration for context.
+    4. Read each chunk file sequentially. Summarize: key discussion points, decisions, and action items with owners.
+
+  WORKFLOW: My action items from a meeting
+    1. --action=transcript --ref=<index> --json
+    2. Note user.displayName — this is how the user appears in the transcript.
+    3. Read each chunk file. Extract tasks, commitments, and action items assigned to or accepted by the user.
+       Look for ALL speakers, not just the user — others may assign tasks to the user by name.
+
+  WORKFLOW: Catch up on missed meetings
+    1. --action=list --since=YYYY-MM-DD --json
+    2. For each meeting with transcripts, --action=transcript --ref=<index> --json
+    3. For each meeting, read chunk files. Produce a brief summary highlighting decisions and action items for the user.
+
+  WORKFLOW: What did we decide about X?
+    1. --action=search --query="topic" --json
+    2. --action=transcript --ref=<index> --json
+    3. Read chunk files. Find and summarize discussion and decisions related to the topic.
+
+  WORKFLOW: Draft follow-up email from a meeting
+    1. --action=transcript --ref=<index> --json
+    2. Read chunk files. Draft an email summarizing key outcomes, action items, and next steps.
+
+  --json sends structured JSON to stdout; all status messages go to stderr.
+  --ref accepts the index number from the last list/search, or a raw online meeting ID.
+  Credentials: CLIENT_ID and TENANT_ID must be set in environment or .env file.
+
+parameters:
+  - name: action
+    type: string
+    required: true
+    description: "Action to perform: list, search, transcript"
+
+  - name: ref
+    type: string
+    required: false
+    description: "Meeting reference: numeric index from last list/search, or raw online meeting ID. Required for transcript."
+
+  - name: query
+    type: string
+    required: false
+    description: "Search query string for meeting subject. Required for search."
+
+  - name: json
+    type: boolean
+    required: false
+    description: "Output structured JSON to stdout instead of plain text. Recommended for agent use."
+
+  - name: n
+    type: integer
+    required: false
+    description: "Number of meetings to fetch (default: 20)"
+
+  - name: since
+    type: string
+    required: false
+    description: "Filter to meetings on or after this date. Format: YYYY-MM-DD"
+
+  - name: before
+    type: string
+    required: false
+    description: "Filter to meetings on or before this date. Format: YYYY-MM-DD"
+
+security:
+  - "Credentials (CLIENT_ID, TENANT_ID) must be set as environment variables or in a .env file. Never hardcode credentials."
+  - "Token cache stored at ~/.teams-assistant-auth.json — protects access token at rest via OS keychain where available."
+  - "Meeting ID cache stored at ~/.teams-assistant-meeting-cache.json — contains join URLs, not meeting content."
+  - "The --ref flag accepts user-supplied index or online meeting ID — validated internally before use."
